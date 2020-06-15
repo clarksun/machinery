@@ -93,7 +93,7 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 	// we send it to the deliveries channel
 	go func() {
 
-		log.INFO.Print("[*] Waiting for messages. To exit press CTRL+C")
+		log.INFO.Print("[*] Waiting for messages. To exit press CTRL+C!!!")
 
 		for {
 			select {
