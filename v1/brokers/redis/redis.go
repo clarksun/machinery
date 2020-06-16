@@ -360,6 +360,7 @@ func (b *Broker) nextTask(queue string) (result []byte, err error) {
 	//items, err := redis.ByteSlices(conn.Do("BLPOP", queue, pollPeriodSeconds))
 	items, err := redis.ByteSlices(conn.Do("LPOP", queue))
 	time.Sleep(pollPeriod)
+	log.INFO.Printf("items: %v", items)
 	if err != nil {
 		return []byte{}, err
 	}
