@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
-	"math"
 	"sync"
 	"time"
 
@@ -103,8 +102,12 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 				return
 			case <-pool:
 				if taskProcessor.PreConsumeHandler() {
-					task, _ := b.nextTask(getQueue(b.GetConfig(), taskProcessor))
+					task, err := b.nextTask(getQueue(b.GetConfig(), taskProcessor))
 					//TODO: should this error be ignored?
+					if err != nil {
+						log.ERROR.Print(err)
+						continue
+					}
 					if len(task) > 0 {
 						deliveries <- task
 					}
@@ -351,9 +354,11 @@ func (b *Broker) nextTask(queue string) (result []byte, err error) {
 	// math.Ceil():
 	//   math.Ceil(0.0) --> 0 (block indefinitely)
 	//   math.Ceil(0.2) --> 1 (timeout after 1 second)
-	pollPeriodSeconds := math.Ceil(pollPeriod.Seconds())
 
-	items, err := redis.ByteSlices(conn.Do("BLPOP", queue, pollPeriodSeconds))
+	//pollPeriodSeconds := math.Ceil(pollPeriod.Seconds())
+	//items, err := redis.ByteSlices(conn.Do("BLPOP", queue, pollPeriodSeconds))
+	items, err := redis.ByteSlices(conn.Do("LPOP", queue))
+	time.Sleep(pollPeriod)
 	if err != nil {
 		return []byte{}, err
 	}
