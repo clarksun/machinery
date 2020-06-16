@@ -337,7 +337,7 @@ func (b *Broker) consumeOne(delivery []byte, taskProcessor iface.TaskProcessor) 
 
 // nextTask pops next available task from the default queue
 func (b *Broker) nextTask(queue string) (result []byte, err error) {
-	log.INFO.Println("call nextTask")
+	log.INFO.Printf("call nextTask, queue: %s", queue)
 	conn := b.open()
 	defer conn.Close()
 
@@ -358,20 +358,22 @@ func (b *Broker) nextTask(queue string) (result []byte, err error) {
 
 	//pollPeriodSeconds := math.Ceil(pollPeriod.Seconds())
 	//items, err := redis.ByteSlices(conn.Do("BLPOP", queue, pollPeriodSeconds))
-	items, err := redis.ByteSlices(conn.Do("LPOP", queue))
+	//items, err := redis.ByteSlices(conn.Do("LPOP", queue))
+	result, err = redis.Bytes(conn.Do("LPOP", queue))
 	time.Sleep(pollPeriod)
-	log.INFO.Printf("items: %v", items)
+	log.INFO.Printf("items: %v", result)
 	if err != nil {
 		return []byte{}, err
 	}
 
+
 	// items[0] - the name of the key where an element was popped
 	// items[1] - the value of the popped element
-	if len(items) != 2 {
-		return []byte{}, redis.ErrNil
-	}
+	//if len(items) != 2 {
+	//	return []byte{}, redis.ErrNil
+	//}
 
-	result = items[1]
+	//result = items[1]
 
 	return result, nil
 }
