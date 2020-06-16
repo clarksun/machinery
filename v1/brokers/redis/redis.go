@@ -102,14 +102,14 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 				return
 			case <-pool:
 				if taskProcessor.PreConsumeHandler() {
-					task, err := b.nextTask(getQueue(b.GetConfig(), taskProcessor))
-					//TODO: should this error be ignored?
-					if err != nil {
-						log.ERROR.Print(err)
-						continue
-					}
-					if len(task) > 0 {
-						deliveries <- task
+					LOOP:
+					for {
+						task, _ := b.nextTask(getQueue(b.GetConfig(), taskProcessor))
+						//TODO: should this error be ignored?
+						if len(task) > 0 {
+							deliveries <- task
+							break LOOP
+						}
 					}
 				}
 
