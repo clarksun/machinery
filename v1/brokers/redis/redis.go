@@ -109,8 +109,8 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 							close(deliveries)
 							return
 						default:
+							time.Sleep(1 * time.Second)
 							task, _ := b.nextTask(getQueue(b.GetConfig(), taskProcessor))
-							//TODO: should this error be ignored?
 							if len(task) > 0 {
 								deliveries <- task
 								break LOOP
@@ -346,38 +346,10 @@ func (b *Broker) nextTask(queue string) (result []byte, err error) {
 	conn := b.open()
 	defer conn.Close()
 
-	pollPeriodMilliseconds := 1000 // default poll period for normal tasks
-	if b.GetConfig().Redis != nil {
-		configuredPollPeriod := b.GetConfig().Redis.NormalTasksPollPeriod
-		if configuredPollPeriod > 0 {
-			pollPeriodMilliseconds = configuredPollPeriod
-		}
-	}
-	pollPeriod := time.Duration(pollPeriodMilliseconds) * time.Millisecond
-
-	// Issue 548: BLPOP expects an integer timeout expresses in seconds.
-	// The call will if the value is a float. Convert to integer using
-	// math.Ceil():
-	//   math.Ceil(0.0) --> 0 (block indefinitely)
-	//   math.Ceil(0.2) --> 1 (timeout after 1 second)
-
-	//pollPeriodSeconds := math.Ceil(pollPeriod.Seconds())
-	//items, err := redis.ByteSlices(conn.Do("BLPOP", queue, pollPeriodSeconds))
-	//items, err := redis.ByteSlices(conn.Do("LPOP", queue))
 	result, err = redis.Bytes(conn.Do("LPOP", queue))
-	time.Sleep(pollPeriod)
 	if err != nil {
 		return []byte{}, err
 	}
-
-
-	// items[0] - the name of the key where an element was popped
-	// items[1] - the value of the popped element
-	//if len(items) != 2 {
-	//	return []byte{}, redis.ErrNil
-	//}
-
-	//result = items[1]
 
 	return result, nil
 }
