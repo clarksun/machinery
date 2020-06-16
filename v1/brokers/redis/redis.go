@@ -337,6 +337,7 @@ func (b *Broker) consumeOne(delivery []byte, taskProcessor iface.TaskProcessor) 
 
 // nextTask pops next available task from the default queue
 func (b *Broker) nextTask(queue string) (result []byte, err error) {
+	log.INFO.Println("call nextTask")
 	conn := b.open()
 	defer conn.Close()
 
