@@ -104,11 +104,17 @@ func (b *Broker) StartConsuming(consumerTag string, concurrency int, taskProcess
 				if taskProcessor.PreConsumeHandler() {
 					LOOP:
 					for {
-						task, _ := b.nextTask(getQueue(b.GetConfig(), taskProcessor))
-						//TODO: should this error be ignored?
-						if len(task) > 0 {
-							deliveries <- task
-							break LOOP
+						select {
+						case <-b.GetStopChan():
+							close(deliveries)
+							return
+						default:
+							task, _ := b.nextTask(getQueue(b.GetConfig(), taskProcessor))
+							//TODO: should this error be ignored?
+							if len(task) > 0 {
+								deliveries <- task
+								break LOOP
+							}
 						}
 					}
 				}
@@ -337,7 +343,6 @@ func (b *Broker) consumeOne(delivery []byte, taskProcessor iface.TaskProcessor) 
 
 // nextTask pops next available task from the default queue
 func (b *Broker) nextTask(queue string) (result []byte, err error) {
-	log.INFO.Printf("call nextTask, queue: %s", queue)
 	conn := b.open()
 	defer conn.Close()
 
@@ -361,7 +366,6 @@ func (b *Broker) nextTask(queue string) (result []byte, err error) {
 	//items, err := redis.ByteSlices(conn.Do("LPOP", queue))
 	result, err = redis.Bytes(conn.Do("LPOP", queue))
 	time.Sleep(pollPeriod)
-	log.INFO.Printf("items: %v", result)
 	if err != nil {
 		return []byte{}, err
 	}
